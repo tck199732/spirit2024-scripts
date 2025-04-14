@@ -93,8 +93,8 @@ void SetTreeBranches(TTree *&tree);
 
 void UnpackSamuraiData(
 	// clang-format off
-    TString indata = "ridf/data1636.ridf", 
-    TString outdata = "unpacked/data1636.root"
+    TString indata = "ridf/data1145.ridf", 
+    TString outdata = "unpacked/data1145.root"
 	// clang-format on
 ) {
 
@@ -109,10 +109,15 @@ void UnpackSamuraiData(
 
 	long nEvents = 0;
 	while (estore->GetNextEvent()) {
+		// 8, 25, 33, 34, 35, 36
+		// 0 is not used
+		// what is module 32 ?
 
 		event.reset();
 		event.run = rawevent->GetRunNumber();
 		event.event = rawevent->GetEventNumber();
+		// event.timestamp = rawevent->GetTimeStamp();
+		// event.scaler = rawevent->GetNumScaler();
 
 		for (auto i = 0; i < rawevent->GetNumSeg(); i++) {
 
@@ -136,7 +141,7 @@ void UnpackSamuraiData(
 						std::cerr << "Error!! Geo for SBT QDC must be 5!: " << geo << std::endl;
 						break;
 					}
-
+					// 8,9 for 25 mu; 10,11 for 100 mu ?
 					if (!(ch == 8 || ch == 9 || ch == 10 || ch == 11)) {
 						std::cerr << "Error!! Channel for SBT QDC must be 8, 9, 10, or 11!: " << ch << std::endl;
 						break;
@@ -157,15 +162,17 @@ void UnpackSamuraiData(
 						break;
 					}
 					if (ch < 0 || ch > 33) {
-						std::cerr << "Error!! Channel for SBT TDC must be between 0 and 33!: " << ch << std::endl;
+						std::cerr << "Error!! Channel for SBT TDC must be between 0 and 31!: " << ch << std::endl;
 						break;
 					}
 
-					if (ch == 6 || ch == 7) {
+					// 6,7 for 25 mu; 8,9 for 100 mu ?
+					if (ch == 6 || ch == 7 || ch == 8 || ch == 9) {
 						event.mtdc32.tdc[ch] = val;
 					} else if (ch == 32) {
 						event.mtdc32.trigger[0] = val;
-					} else if (ch == 27) {
+					} else if (ch == 33) {
+						std::cerr << "Warning : Trigger 1 (ch 33) is not used" << std::endl;
 						event.mtdc32.trigger[1] = val;
 					} else {
 						std::cerr << "Error!! Channel for SBT TDC must be 6, 7, 8, 9 or 32, 33! : " << ch << std::endl;
@@ -176,8 +183,8 @@ void UnpackSamuraiData(
 
 			/**
 			 * det = 40 used before
+			 * changed to 50 but in conflict with hime veto
 			 */
-
 			if (mod == 35 && addr == 98) {
 				for (auto j = 0; j < ndata; j++) {
 					auto rawData = seg->GetData(j);
@@ -186,7 +193,7 @@ void UnpackSamuraiData(
 					auto val = rawData->GetVal();
 
 					if (ch > 64) {
-						// std::cerr << "Error!! Channel for EASIROC should be less than 64!!: " << ch << std::endl;
+						std::cerr << "Error!! Channel for EASIROC should be less than 64!!: " << ch << std::endl;
 						break;
 					}
 
@@ -266,7 +273,6 @@ void UnpackSamuraiData(
 					if (edge == 0) {
 						event.v1290.ltdc[ch] = val;
 					} else if (edge == 1) {
-
 						event.v1290.ttdc[ch] = val;
 					}
 				}
