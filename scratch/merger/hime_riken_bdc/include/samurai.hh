@@ -17,9 +17,15 @@ struct samuraiData {
 	std::array<double, SAMURAI_MAXHITS> vetoTof;
 	std::array<double, SAMURAI_MAXHITS> vetoTot;
 	std::array<double, SAMURAI_MAXHITS> vetoTdiff;
+
+	Double_t tbdc_x;
+	Double_t tbdc_y;
+	Double_t tbdc_a;
+	Double_t tbdc_b;
 };
 
 samuraiData samurai;
+
 void setSamuraiBranchAddr(TChain *&chain) {
 	chain->SetBranchAddress("runNumber", &samurai.runNumber);
 	chain->SetBranchAddress("eventNumber", &samurai.eventNumber);
@@ -32,6 +38,13 @@ void setSamuraiBranchAddr(TChain *&chain) {
 	chain->SetBranchAddress("vetoTof", &samurai.vetoTof[0]);
 	chain->SetBranchAddress("vetoTot", &samurai.vetoTot[0]);
 	chain->SetBranchAddress("vetoTdiff", &samurai.vetoTdiff[0]);
+
+	// bdc from Park
+	chain->SetBranchAddress("bdc_x", &samurai.tbdc_x);
+    chain->SetBranchAddress("bdc_y", &samurai.tbdc_y);
+    chain->SetBranchAddress("bdc_a", &samurai.tbdc_a);
+    chain->SetBranchAddress("bdc_b", &samurai.tbdc_b);
+
 	return;
 }
 

@@ -28,12 +28,16 @@ for data_dir in data_dir_list:
     for hime_file in hime_files:
         try:
             runID = int(re.findall(r'\d+', hime_file.name)[0])
+            print(f'Parsing runID {runID}')
         except:
             print('Error in parsing runID')
             continue
 
         symlink = out_dir / f'data{runID:04d}.root'
+        print(f'Creating symlink {symlink} -> {hime_file}')
         if symlink.exists():
+            print(f'{symlink} already exists')
             symlink.unlink()
             symlink.symlink_to(hime_file)
+        
         

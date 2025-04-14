@@ -178,6 +178,11 @@ void createMergedBranches(TTree *&mergedTree) {
 	mergedTree->Branch("vetoTot", &samurai.vetoTot[0], "vetoTot[vetoMulti]/D");
 	mergedTree->Branch("vetoTdiff", &samurai.vetoTdiff[0], "vetoTdiff[vetoMulti]/D");
 
+	mergedTree->Branch("tbdc_x", &samurai.tbdc_x, "tbdc_x/D");
+	mergedTree->Branch("tbdc_y", &samurai.tbdc_y, "tbdc_y/D");
+	mergedTree->Branch("tbdc_a", &samurai.tbdc_a, "tbdc_a/D");
+	mergedTree->Branch("tbdc_b", &samurai.tbdc_b, "tbdc_b/D");
+
 	return;
 }
 
