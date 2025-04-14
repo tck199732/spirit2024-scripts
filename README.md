@@ -20,7 +20,7 @@ This repository stores useful scripts and ROOT macros for unpacking and analyzin
 
 ### 0. Start
 ---------
-Copy the required files or clone the repository `git clone https://github.com/tck199732/spirit2024-scripts.git`. Assume you are running the scripts on `s063@ridfana04`, run `anarootlogin ${your_account_name}` to source everything you need. 
+Copy the required files or clone the repository `git clone https://github.com/tck199732/spirit2024-scripts.git`. Assume you are running the scripts on `s063@ridfana04`, run `anarootlogin ${your_account_name}` to source everything you need. If you are working in your local machine, you need ROOT and ANAROOT installation. After that, modify the installation paths in `setup.sh` and source it when you start working.
 
 ### 1. Unpacker
 ----------------
