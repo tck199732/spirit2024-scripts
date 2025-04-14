@@ -13,18 +13,23 @@ This repository stores useful scripts and ROOT macros for unpacking and analyzin
     - [ana](./scratch/ana) : converts unpacked data to ROOT files with observables such as `tof, tdiff, multi, ...`
     - [merger](./scratch/merger/) : merging analyzed data from [ana](./scratch/ana) and data from [`tDiff`](https://github.com/MarcoKnoesel/himeAna) from Hime detector. 
     - [rateCheck](./scratch/rateCheck/) : a simple calculation for downscaler factor based on kyoto multiplicities in run `1045`.
-    - [workdir](./scratch/workdir/) : working directory for `Hime` analysis. 
-    - [neutronAna](./scratch/neutronAna/) : similar to [workdir](./scratch/workdir/) but for my own study.
+    - [neutronAnaOld](./scratch/neutronAnaOld/) : Old analysis scripts used in June. 
+    - [neutronAna](./scratch/neutronAna/) : Updated analysis scripts used in June. 
 
 ## Instruction
 
 ### 0. Start
 ---------
-Copy the required files or clone the repository `git clone https://github.com/tck199732/spirit2024-scripts.git`. Assume you are running the scripts on `ridfana04`, run `anarootlogin ${your_account_name}` to source everything you need. 
+Copy the required files or clone the repository `git clone https://github.com/tck199732/spirit2024-scripts.git`. Assume you are running the scripts on `s063@ridfana04`, run `anarootlogin ${your_account_name}` to source everything you need. 
 
 ### 1. Unpacker
------------
-The first step is to unpack the `ridf` files using the macro located at [`macros/UnpackSamuraiData.C`](./macros/UnpackSamuraiData.C). To unpack multiple files, use the script [`unpacker.py`](./unpack.py). 
+----------------
+The first step is to unpack the `ridf` files using the macro located at [`macros/UnpackSamuraiData.C`](./macros/UnpackSamuraiData.C). Create symlinks to the directory containing the data and output in your machine. 
+``` {bash}
+ln -s ${your_ridf_directory} ridf
+ln -s ${your_output_directory} unpacked
+```
+To unpack multiple files, use the script [`unpacker.py`](./unpack.py). 
 
 ``` {bash}
 # run `./unpack.py --help` to see options
@@ -41,19 +46,20 @@ Such error occurs in only a few events and those events are skipped in the unpac
 
 ### 2. Ana
 ---------
-Nagvigate to [`scratch/ana`](./scratch/ana), compile the program with `make`. This creates the executable `ana.exe`. To analyze multiple files generated in `step 1`, run 
-
+The next step is to process the unpacked file to get observables.Nagvigate to [`scratch/ana`](./scratch/ana), compile the program with `make`. This creates the executable `ana.exe`. (Again, create the symlink or create directory for your outputs.) To analyze multiple files generated in `step 1`, run 
 ``` {bash}
+ln -s ${output_location} analyzed
 ./a.sh ${start-run-idx} ${end-run-idx}
 ```
-
 This produces ROOT files with observables such as `tdiff, tof, multi, detectorId, scaler ...` stored in [`analyzed`](./scratch/ana/analyzed/).
 
 ### 3. Merging 
 -----------------
-Now, we need to merge the data from samurai daq and hime daq. To do this, first we copy files from the Hime side. This is done in [`scratch/merger/hime`](./scratch/merger/hime/). If you are on shift, you can run `link_himefiles.py` to create sym link to the hime data files. 
+In `scratch/merger/riken_bdc`, bdc files generated from Park are merged to the analyzed data in last step. (They should have the same number of events and all timestamps should match.)
 
-Next, compile the merger program in the merger directory, i.e. `make`. Run the `a.py` script to merge files according to time stamp. Modify the `runId` in the script and simply `./a.py`. 
+Now, we need to merge the data from samurai daq and hime daq. To do this, first we copy files from the Hime side. This is done in [`scratch/merger/hime_riken_bdc/hime`](./scratch/merger/hime_riken_bdc/hime/). If you are on shift, you can run `link_himefiles.py` to create sym link to the hime data files. 
+
+Next, compile the merger program in the merger directory, i.e. `make`. Run the `a.py` script to merge files according to time stamp. Modify the `runId` in the script and simply `./a.py`. Pay attention that there is a few fall runs where the run number is out of sync with riken daq since the daq crashed. A short fix is in `a.py`.
 
 Users are suggested to check the merging by running the executable on single run number with verbose mode `./merge.exe -i ${hime-file} -s ${samurai-file} --verbose`. In run `1150`, for example, the merging is not always complete, below shows part of the output 
 
@@ -70,10 +76,5 @@ entriesHime = 35297     entriesSamurai = 33876  mergedEvents = 23480
 ```
 
 ### 4. analysis
-- further analysis can be done on the merged files, see [`neutronAna`](./scratch/neutronAna/) and [`workdir/macros`](./scratch/workdir/macros/).
-
-- There are a few python/jupyter files, I generated a conda env using the [`./environement.yml](./environment.yml), i.e. `conda env create -f ./environement.yml --prefix ./env`. However, do not add ROOT in environment since for some reason it conflicts root in the machine. 
-
-## TLDR
-For super fast instruction, see [`./scratch/merger/howtomerge.txt`](./scratch/merger/howtomerge.txt)
+Further analysis can be done on the merged files, see [`neutronAna`](./scratch/neutronAna/macros). The most useful one is `shadowAna.C` which analyzes the hit in all detectors. A list of useful runs can be found in the bash scripts `runShadowCounts.sh`. To get the 1D spectra for the shadows of specific modules, check the jupyter notebook in the directory `plottings`. To use them, simply source root installation and then activate your python environment.
 
