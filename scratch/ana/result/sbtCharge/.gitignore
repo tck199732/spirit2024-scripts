@@ -1,4 +1,0 @@
-*.txt
-*.ipynb
-
-!plot_charge_trend.ipynb
