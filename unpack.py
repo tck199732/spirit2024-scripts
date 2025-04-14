@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import time
 import subprocess
 from pathlib import Path
 
@@ -46,7 +45,12 @@ def main():
             continue
 
         print(f'Unpacking {ridf_file}...')
-        cmd = f'root -q -l -b \'{macro.relative_to(current_path)}(\"{indata}\", \"{outdata}\")\''
+
+        if args.ignore_anaroot_error:
+            cmd = f"printf '%s\n''n' | root -q -l -b \'{macro.relative_to(current_path)}(\"{indata}\", \"{outdata}\")\'"
+        else:
+            cmd = f'root -q -l -b \'{macro.relative_to(current_path)}(\"{indata}\", \"{outdata}\")\''
+
         if args.log:
             cmd += f' > {logfile} 2>&1'
 
@@ -72,6 +76,7 @@ def get_arguments():
     argparser.add_argument('--file-size-limit', type=int, help='Minimum file size (bytes) for us to unpack.', default=0)
 
     argparser.add_argument('--disable-logging', action='store_false', help='Disable logging', dest='log')
+    argparser.add_argument('--ignore-anaroot-error', action='store_true', help='Ignore anaroot error and continue unpacking')
 
     return argparser.parse_args()
 
