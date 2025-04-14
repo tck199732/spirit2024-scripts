@@ -2,10 +2,12 @@
 #define SPIRIT_HH
 
 #include "TChain.h"
+#include <array>
+#include <string>
+#include <vector>
 
 constexpr int HIME_MAXHITS = 256;
 constexpr int SAMURAI_MAXHITS = 256;
-
 struct spiritData {
 	unsigned int hime_nHits;
 	std::array<double, HIME_MAXHITS> hime_tofRaw;
@@ -29,6 +31,11 @@ struct spiritData {
 	std::array<double, SAMURAI_MAXHITS> hime_veto_charge;
 	std::array<double, SAMURAI_MAXHITS> hime_veto_tdiff;
 	std::array<double, SAMURAI_MAXHITS> hime_veto_x;
+
+	Double_t tbdc_x;
+	Double_t tbdc_y;
+	Double_t tbdc_a;
+	Double_t tbdc_b;
 
 	void reset();
 };
@@ -59,10 +66,22 @@ void spiritData::reset() {
 	hime_veto_charge.fill(0);
 	hime_veto_tdiff.fill(0);
 	hime_veto_x.fill(0);
+
+	tbdc_x = 0;
+	tbdc_y = 0;
+	tbdc_a = 0;
+	tbdc_b = 0;
 	return;
 }
 
-void SetBranchAddress(TChain *&chain) {
+TChain *getSpiritChain(const std::vector<int> &runIds, const std::string &spiritDir = "spirit") {
+	auto chain = new TChain("spirit", "spirit");
+
+	for (auto idx : runIds) {
+		std::string fname = Form("%s/%04d.root", spiritDir.c_str(), idx);
+		chain->AddFile(fname.c_str());
+	}
+
 	chain->SetBranchAddress("hime_nHits", &spirit.hime_nHits);
 	chain->SetBranchAddress("hime_tofRaw", &spirit.hime_tofRaw[0]);
 	chain->SetBranchAddress("hime_tDiff", &spirit.hime_tDiff[0]);
@@ -75,18 +94,23 @@ void SetBranchAddress(TChain *&chain) {
 	chain->SetBranchAddress("hime_fastScaler", &spirit.hime_fastScaler);
 	chain->SetBranchAddress("hime_eventNumber", &spirit.hime_eventNumber);
 
-	chain->SetBranchAddress("run", &spirit.run);
-	chain->SetBranchAddress("event", &spirit.event);
-	chain->SetBranchAddress("lupots", &spirit.lupots);
-	chain->SetBranchAddress("kyoto_multi", &spirit.kyoto_multi);
-	chain->SetBranchAddress("kyoto_bar", &spirit.kyoto_bar[0]);
-	chain->SetBranchAddress("hime_veto_multi", &spirit.hime_veto_multi);
-	chain->SetBranchAddress("hime_veto_bar", &spirit.hime_veto_bar[0]);
-	chain->SetBranchAddress("hime_veto_tof", &spirit.hime_veto_tof[0]);
-	chain->SetBranchAddress("hime_veto_charge", &spirit.hime_veto_charge[0]);
-	chain->SetBranchAddress("hime_veto_tdiff", &spirit.hime_veto_tdiff[0]);
-	chain->SetBranchAddress("hime_veto_x", &spirit.hime_veto_x[0]);
-	return;
+	chain->SetBranchAddress("runNumber", &spirit.run);
+	chain->SetBranchAddress("eventNumber", &spirit.event);
+	chain->SetBranchAddress("lupoTimeStamp", &spirit.lupots);
+	chain->SetBranchAddress("kyotoMulti", &spirit.kyoto_multi);
+	chain->SetBranchAddress("kyotoBarId", &spirit.kyoto_bar[0]);
+	chain->SetBranchAddress("vetoMulti", &spirit.hime_veto_multi);
+	chain->SetBranchAddress("vetoBarId", &spirit.hime_veto_bar[0]);
+	chain->SetBranchAddress("vetoTof", &spirit.hime_veto_tof[0]);
+	chain->SetBranchAddress("vetoTot", &spirit.hime_veto_charge[0]);
+	chain->SetBranchAddress("vetoTdiff", &spirit.hime_veto_tdiff[0]);
+
+	chain->SetBranchAddress("tbdc_x", &spirit.tbdc_x);
+	chain->SetBranchAddress("tbdc_y", &spirit.tbdc_y);
+	chain->SetBranchAddress("tbdc_a", &spirit.tbdc_a);
+	chain->SetBranchAddress("tbdc_b", &spirit.tbdc_b);
+
+	return chain;
 }
 
 #endif
