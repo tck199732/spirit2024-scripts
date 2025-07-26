@@ -78,3 +78,12 @@ entriesHime = 35297     entriesSamurai = 33876  mergedEvents = 23480
 ### 4. analysis
 Further analysis can be done on the merged files, see [`neutronAna`](./scratch/neutronAna/macros). The most useful one is `shadowAna.C` which analyzes the hit in all detectors. A list of useful runs can be found in the bash scripts `runShadowCounts.sh`. To get the 1D spectra for the shadows of specific modules, check the jupyter notebook in the directory `plottings`. To use them, simply source root installation and then activate your python environment.
 
+### 5. Neutron Analysis
+
+To analyze neutron data, run the following
+```
+cd scratch/neutronAna
+root macros/load.C macros/Ana.C
+```
+
+The script `run.py` contains all info about the runs for different shadow bar configurations.
