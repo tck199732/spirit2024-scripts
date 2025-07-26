@@ -1,28 +1,12 @@
 #include "spirit.h"
 
 const int nModules = 72;
-void setChain(TChain *chain, const std::vector<int> &runIds);
-std::string getFileFromRunNumber(int idx);
-template <typename T> bool matchHit(const std::vector<T> &vec, T val);
 unsigned int getLayer(const unsigned int &hitModule);
-std::vector<double> getOffset(const std::string &filename);
+std::vector<double> getModulePositions(const std::string &filename);
+void getPositionCalibration(const std::string &filename, std::vector<double> &veff, std::vector<double> &offset);
 
 void TdiffOffset(
 	// clang-format off
-    bool applyOffset = false,
-    bool useVetoWall = true,
-	const std::string &outputFilename = "tdiff.root",
-	const std::string &calibFilename = "database/calibration/tdiff/tdiff_offset.json", 
-	const std::vector<std::vector<unsigned int>> calibModule =
-    {
-        {28, 35, 42},
-        {4, 11, 18},
-        {28, 35, 42},
-        // {24, 35, 47},
-        // {48, 59, 71},
-        // {24, 35, 47},
-
-    },
     const std::vector<int> &runIds =
     {
         1148, 1150, 1151, 1152, 1153, 1154, 1155, 1158, 1159, 1160, 1161, 1162, 1163, 1164, 1165, 1166, 1167,
@@ -36,28 +20,35 @@ void TdiffOffset(
         1300, 1304, 1305, 1306, 1308, 1309, 1310, 1311, 1312, 1313, 1314, 1316, 1317, 1318, 1319, 1320, 
         1322, 1324, 1325, 1326, 1327, 1331
 
-    } // clang-format on
+    },
+    const std::string &outputFilename = "tdiff.root",
+    bool applyOffset = false,
+    bool useVetoWall = false,
+    const std::string &tdiffOffsetFile = "database/calibration/tdiff/position-calib-muon.json"
+
+	// clang-format on
 ) {
 
-	auto chain = new TChain("spirit", "spirit");
-	setChain(chain, runIds);
+	auto chain = getSpiritChain(runIds, "spirit");
 	auto nEntries = chain->GetEntries();
 
-	auto offsetVec = getOffset(calibFilename);
+	// load tdiff offset and velocity
+	std::vector<double> veff(nModules, 0.0);
+	std::vector<double> posOffset(nModules, 0.0);
+	getPositionCalibration(tdiffOffsetFile, veff, posOffset);
+
 	std::cout << "Number of entries: " << nEntries << std::endl;
 
 	/****************************************************************************************************************/
-	auto hModuleIDVsTDiff = new TH2D("hModuleIDVsTDiff", "", 500, -25, 25, nModules, 0, nModules);
-	TH2D *hModuleIDVsTDiffLayer[3];
-	for (auto i = 0; i < 3; i++) {
-		hModuleIDVsTDiffLayer[i] =
-			new TH2D(Form("hModuleIDVsTDiffLayer%d", i), "", 500, -25, 25, nModules, 0, nModules);
-	}
 
-	TH2D *hModuleIDVsTDiffLayerGated[3];
-	for (auto i = 0; i < 3; i++) {
-		hModuleIDVsTDiffLayerGated[i] =
-			new TH2D(Form("hModuleIDVsTDiffLayer%dGated", i), "", 500, -25, 25, nModules, 0, nModules);
+	TH2D *hModuleIDVsTDiff[nModules];
+	TH2D *hGatedModuleIDVsTDiff[nModules];
+
+	for (auto iMod = 0; iMod < nModules; iMod++) {
+		hModuleIDVsTDiff[iMod] =
+			new TH2D(Form("hModuleIDVsTDiffModule%d", iMod), "", 500, -25, 25, nModules, 0, nModules);
+		hGatedModuleIDVsTDiff[iMod] =
+			new TH2D(Form("hGatedModuleIDVsTDiffModule%d", iMod), "", 500, -25, 25, nModules, 0, nModules);
 	}
 
 	/****************************************************************************************************************/
@@ -80,14 +71,10 @@ void TdiffOffset(
 			continue;
 		}
 
-		std::array<bool, 3> isCalibrate = {false, false, false};
+		std::vector<bool> isHit(nModules, false);
 		for (auto ihit = 0; ihit < spirit.hime_nHits; ihit++) {
-			auto hitModule = spirit.hime_moduleID[ihit];
-			for (auto layer = 0; layer < 3; layer++) {
-				if (matchHit(calibModule[layer], hitModule)) {
-					isCalibrate[layer] = true;
-				}
-			}
+			int moduleId = spirit.hime_moduleID[ihit];
+			isHit[moduleId] = true;
 		}
 
 		for (auto ihit = 0; ihit < spirit.hime_nHits; ihit++) {
@@ -100,46 +87,32 @@ void TdiffOffset(
 
 			auto tDiff = spirit.hime_tDiff[ihit];
 			if (applyOffset) {
-				tDiff -= offsetVec[moduleId];
+				auto offset = -posOffset[moduleId] / (0.5 * veff[moduleId]);
+				tDiff -= offset;
 			}
 
 			if (moduleId <= 1 || moduleId >= nModules) {
 				continue;
 			}
 
-			hModuleIDVsTDiff->Fill(tDiff, moduleId);
-			hModuleIDVsTDiffLayer[layerId]->Fill(tDiff, moduleId);
-
-			if (isCalibrate[layerId]) {
-				hModuleIDVsTDiffLayerGated[layerId]->Fill(tDiff, moduleId);
+			int gateLayer = (layerId == 0 || layerId == 2) ? 1 : 0;
+			for (auto i = gateLayer * 24; i < (gateLayer + 1) * 24; i++) {
+				if (isHit[i]) {
+					hModuleIDVsTDiff[moduleId]->Fill(tDiff, i);
+					hGatedModuleIDVsTDiff[i]->Fill(tDiff, moduleId);
+				}
 			}
 		}
 	}
 
 	auto ofile = new TFile(outputFilename.c_str(), "recreate");
-	hModuleIDVsTDiff->Write();
-	for (auto i = 0; i < 3; i++) {
-		hModuleIDVsTDiffLayer[i]->Write();
-		hModuleIDVsTDiffLayerGated[i]->Write();
+	for (auto i = 0; i < nModules; i++) {
+		hModuleIDVsTDiff[i]->Write();
+		hGatedModuleIDVsTDiff[i]->Write();
 	}
 	ofile->Close();
 
 	return;
-}
-
-void setChain(TChain *chain, const std::vector<int> &runIds) {
-	for (auto idx : runIds) {
-		auto fname = getFileFromRunNumber(idx);
-		chain->AddFile(fname.c_str());
-	}
-	SetBranchAddress(chain); // from spirit.hh
-	return;
-}
-
-std::string getFileFromRunNumber(int idx) { return Form("spirit/data%04d.root", idx); }
-
-template <typename T> bool matchHit(const std::vector<T> &vec, T val) {
-	return std::find(vec.begin(), vec.end(), val) != vec.end();
 }
 
 unsigned int getLayer(const unsigned int &hitModule) {
@@ -155,27 +128,30 @@ unsigned int getLayer(const unsigned int &hitModule) {
 	return -1;
 }
 
-std::vector<double> getOffset(const std::string &filename) {
-
-	if (filename == "") {
-		return std::vector<double>(nModules, 0);
-	}
-
-	if (!std::filesystem::exists(filename)) {
-		std::cerr << "Could not open file " << filename << std::endl;
-		return std::vector<double>(nModules, 0);
-	}
-
-	std::vector<double> offset(nModules, 0);
-
+void getPositionCalibration(const std::string &filename, std::vector<double> &veff, std::vector<double> &offset) {
 	std::ifstream infile(filename.c_str());
-	// load json file
+
+	assert(veff.size() == nModules);
+	assert(offset.size() == nModules);
+
+	for (int i = 0; i < nModules; i++) {
+		veff[i] = 0.0;
+		offset[i] = 0.0;
+	}
+
 	nlohmann::json j;
 	infile >> j;
+	infile.close();
 
-	for (auto i = 0; i < nModules; i++) {
-		offset[i] = j[std::to_string(i)];
+	for (int i = 0; i < nModules; i++) {
+		if (j.contains(std::to_string(i))) {
+			if (!j[std::to_string(i)].contains("v") || !j[std::to_string(i)].contains("offset")) {
+				continue; // skip if v or offset is not present
+			}
+			veff[i] = j[std::to_string(i)]["v"].get<double>();
+			offset[i] = j[std::to_string(i)]["offset"].get<double>();
+		} else {
+			std::cerr << "Module " << i << " not found in calibration file." << std::endl;
+		}
 	}
-
-	return offset;
 }

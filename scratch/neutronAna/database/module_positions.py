@@ -33,7 +33,7 @@ def main():
     n_layers = 3
     n_modules = 72
     bar_width = 0.04
-    bar_gap = 0.004
+    bar_gap = 0.002
     n_modules_per_layer = n_modules // n_layers
 
 
@@ -66,7 +66,7 @@ def main():
     })            
 
     # add a title in the first row, 
-    # df.to_csv('positions.dat', index=False, sep=' ', float_format='%.3f')
+    df.to_csv('positions2.dat', index=False, sep=' ', float_format='%.3f')
     
 
     # fig, ax = plt.subplots(1,1,dpi=300,figsize=(4.5,3.5), constrained_layout=True)

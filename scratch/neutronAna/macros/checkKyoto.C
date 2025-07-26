@@ -1,7 +1,9 @@
 
-void checkNumberOfEvents(
+spiritData spirit;
+
+void checkKyoto(
 	// clang-format off
-    const std::string &outputFilename = "logs/events.txt",
+    const std::string &outputFilename = "logs/kyoto.txt",
     const std::string &spiritDir="spirit",
     const std::string & treeName = "spirit"
 
@@ -9,7 +11,6 @@ void checkNumberOfEvents(
 ) {
 
 	// get all root files in the spirit directory
-
 	std::vector<std::string> filenames;
 	std::vector<int> runIds;
 	for (const auto &entry : std::filesystem::directory_iterator(spiritDir.c_str())) {
@@ -25,15 +26,25 @@ void checkNumberOfEvents(
 	std::sort(runIds.begin(), runIds.end());
 
 	std::ofstream outFile(outputFilename);
-	outFile << "Run ID, Number of Events" << std::endl;
+	outFile << "Run ID, Kyoto Trigger" << std::endl;
 	for (int iRun = 0; iRun < runIds.size(); iRun++) {
 		int runID = runIds[iRun];
 		auto path = filenames[iRun];
 
-		auto chain = new TChain(treeName.c_str(), treeName.c_str());
-		chain->Add(path.c_str());
+		auto chain = getChain({runID}, spiritDir, false, spirit);
 		auto entries = chain->GetEntries();
-		outFile << runID << ", " << entries << std::endl;
+
+		auto hKyoto = new TH1D("hKyoto", "", 64, 0, 64);
+		for (auto iEvt = 0; iEvt < entries; iEvt++) {
+			chain->GetEntry(iEvt);
+			hKyoto->Fill(spirit.kyoto_multi);
+		}
+
+		int maxBin = hKyoto->GetMaximumBin();
+		int maxValue = hKyoto->GetBinCenter(maxBin) - 0.5;
+		outFile << runID << ", " << maxValue << std::endl;
+
+		delete hKyoto;
 		delete chain;
 	}
 }
